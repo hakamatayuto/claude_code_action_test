@@ -1,7 +1,3 @@
-import yaml from 'js-yaml'
-import fs from 'fs'
-import path from 'path'
-
 export interface Task {
   タスク名: string
   担当者: string
@@ -21,15 +17,28 @@ export interface ProcessedTask extends Task {
   startOffset: number
 }
 
-export function loadTasks(): Task[] {
+export async function loadTasks(): Promise<Task[]> {
   try {
-    const filePath = path.join(process.cwd(), 'data', 'tasks.yml')
-    const fileContents = fs.readFileSync(filePath, 'utf8')
-    const data = yaml.load(fileContents) as TaskData
-    return data.tasks || []
+    const apiUrl = typeof window !== 'undefined' 
+      ? '/api/tasks' 
+      : `http://localhost:${process.env.PORT || 3001}/api/tasks`
+    
+    console.log('Fetching tasks from:', apiUrl)
+    const response = await fetch(apiUrl)
+    console.log('Response status:', response.status)
+    
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error('API error response:', errorText)
+      throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`)
+    }
+    
+    const tasks = await response.json()
+    console.log('Loaded tasks:', tasks)
+    return tasks
   } catch (error) {
-    console.error('YMLファイルの読み込みに失敗しました:', error)
-    return []
+    console.error('タスクの読み込みに失敗しました:', error)
+    throw error // エラーを再スローして上位でキャッチ
   }
 }
 

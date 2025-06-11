@@ -1,15 +1,50 @@
-import { loadTasks, processTasks } from '../lib/taskUtils'
+'use client'
+
+import { useEffect, useState } from 'react'
+import { loadTasks, processTasks, Task } from '../lib/taskUtils'
 import GanttChart from '../components/GanttChart'
 
 export default function Home() {
-  const tasks = loadTasks()
+  const [tasks, setTasks] = useState<Task[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const fetchTasks = async () => {
+      try {
+        console.log('Starting to fetch tasks...')
+        const taskData = await loadTasks()
+        console.log('Fetched task data:', taskData)
+        setTasks(taskData)
+      } catch (err) {
+        const errorMsg = err instanceof Error ? err.message : 'Unknown error'
+        setError(`タスクデータの読み込みに失敗しました: ${errorMsg}`)
+        console.error('Error in fetchTasks:', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchTasks()
+  }, [])
+
+  if (loading) {
+    return (
+      <div className="container">
+        <div className="loading">
+          <h2>📊 読み込み中...</h2>
+          <p>タスクデータを取得しています。</p>
+        </div>
+      </div>
+    )
+  }
   
-  if (tasks.length === 0) {
+  if (error || tasks.length === 0) {
     return (
       <div className="container">
         <div className="error">
           <h2>❌ エラー</h2>
-          <p>タスクデータを読み込めませんでした。</p>
+          <p>{error || 'タスクデータを読み込めませんでした。'}</p>
           <p>data/tasks.yml ファイルが存在し、正しい形式で記述されているかご確認ください。</p>
         </div>
       </div>
